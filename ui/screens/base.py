@@ -39,6 +39,8 @@ class BaseScreen(ABC):
     def exit(self):
         """Called when screen becomes inactive."""
         self.is_active = False
+        self.navigator.on_selection_changed = None
+        self.navigator.on_confirm = None
 
     def refresh(self):
         """Refresh screen content."""
