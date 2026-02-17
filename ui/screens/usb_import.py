@@ -6,6 +6,7 @@ from usb.detector import USBDetector
 from usb.manager import USBFileManager
 from easyrsa.pki import PKIManager
 from templates.manager import TemplateManager
+from config.settings import settings
 import os
 
 
@@ -63,12 +64,7 @@ class USBImportExportScreen(MenuScreen):
 
     def _refresh(self):
         """Refresh USB drive list."""
-        # Rebuild menu
-        self._build_menu_items()
-        if self.menu_list_widget:
-            menu_labels = [item['label'] for item in self.menu_items]
-            self.menu_list_widget.set_items(menu_labels)
-            self.navigator.set_items(self.menu_items)
+        self.app.show_screen(self)
 
     def _show_drive_menu(self, drive_path: str):
         """Show menu for specific USB drive.
@@ -116,12 +112,24 @@ class USBDriveMenuScreen(MenuScreen):
                 'action': self._import_templates
             },
             {
+                'label': 'Import vars file',
+                'action': self._import_vars
+            },
+            {
                 'label': 'Export Certificates',
                 'action': self._export_certs
             },
             {
+                'label': 'Export vars file',
+                'action': self._export_vars
+            },
+            {
                 'label': 'Drive Information',
                 'action': self._show_drive_info
+            },
+            {
+                'label': 'Eject Drive',
+                'action': self._eject_drive
             }
         ]
 
@@ -213,6 +221,97 @@ class USBDriveMenuScreen(MenuScreen):
             usb_path=self.drive_path
         )
         self.app.show_screen(export_screen)
+
+    def _eject_drive(self):
+        """Confirm and eject the USB drive."""
+        drive_name = os.path.basename(self.drive_path) or self.drive_path
+        self.show_confirm(
+            'Eject Drive',
+            f'Safely eject:\n\n{drive_name}\n\nAll operations must be finished first.',
+            on_yes=self._do_eject_drive
+        )
+
+    def _do_eject_drive(self):
+        """Perform the eject and navigate back to the USB list."""
+        success = self.usb_manager.detector.unmount_drive(self.drive_path)
+
+        if success:
+            # Drive is gone — go back to the USB list screen and show message from there
+            usb_list = self.navigator.pop_screen()
+            self.app.show_screen(usb_list)
+            usb_list.show_message('Ejected', 'Drive ejected safely.\n\nYou can now remove it.')
+        else:
+            self.show_message('Error',
+                              'Failed to eject drive.\n\nClose any open files and try again.')
+
+    def _export_vars(self):
+        """Export vars file from PKI/easy-rsa directory to USB."""
+        pki_info = self.pki_manager.get_pki_info()
+        easyrsa_dir = os.path.dirname(settings.easyrsa_bin)
+
+        # Look for vars in PKI dir first (easy-rsa 3.x), then easy-rsa dir
+        candidates = [
+            os.path.join(pki_info.pki_dir, 'vars'),
+            os.path.join(easyrsa_dir, 'vars'),
+            os.path.join(easyrsa_dir, 'vars.example'),
+        ]
+
+        vars_path = next((p for p in candidates if os.path.exists(p)), None)
+
+        if not vars_path:
+            self.show_message('Not Found',
+                              f'No vars file found.\n\nLooked in:\n{pki_info.pki_dir}\n{easyrsa_dir}')
+            return
+
+        if self.usb_manager.export_file(vars_path, self.drive_path):
+            self.show_message('Success',
+                              f'Exported to USB:\n\n{os.path.basename(vars_path)}')
+        else:
+            self.show_message('Error', 'Failed to export vars file')
+
+    def _import_vars(self):
+        """Import a vars file from USB into the PKI directory."""
+        vars_files = self.usb_manager.list_vars_files(self.drive_path)
+
+        if not vars_files:
+            self.show_message('No Files',
+                              'No vars files found on USB.\n\nLooking for: vars, vars.example, *.vars')
+            return
+
+        self.navigator.push_screen(self)
+        select_screen = FileSelectScreen(
+            self.app,
+            self.navigator,
+            title='Select vars file',
+            files=vars_files,
+            on_select=self._on_vars_selected
+        )
+        self.app.show_screen(select_screen)
+
+    def _on_vars_selected(self, vars_file: str):
+        """Handle vars file selection for import.
+
+        Args:
+            vars_file: Path to selected vars file on USB
+        """
+        pki_info = self.pki_manager.get_pki_info()
+
+        # Prefer PKI dir; fall back to easy-rsa dir if PKI not yet initialised
+        if os.path.exists(pki_info.pki_dir):
+            dest_dir = pki_info.pki_dir
+        else:
+            dest_dir = os.path.dirname(settings.easyrsa_bin)
+
+        dest_path = os.path.join(dest_dir, 'vars')
+        if self.usb_manager.import_file(vars_file, dest_dir, 'vars'):
+            # vars file may contain secrets — restrict to owner read/write only
+            try:
+                os.chmod(dest_path, 0o600)
+            except OSError:
+                pass
+            self.show_message('Success', f'vars file imported to:\n\n{dest_dir}')
+        else:
+            self.show_message('Error', 'Failed to import vars file')
 
     def _show_drive_info(self):
         """Show USB drive information."""

@@ -4,7 +4,7 @@ A Python 3 Tkinter-based GUI for Easy-RSA certificate authority management, desi
 
 ## Features
 
-- **Jog-Dial Navigation**: Navigate entirely with Up/Down/Confirm buttons (no keyboard required)
+- **Jog-Dial Navigation**: Navigate entirely with Up/Down/Confirm buttons (no keyboard required); selection highlight works correctly in all submenus
 - **CA Management**: Initialize PKI, build CA, manage certificate authority
 - **Certificate Operations**:
   - Create server and client certificates from templates
@@ -13,7 +13,11 @@ A Python 3 Tkinter-based GUI for Easy-RSA certificate authority management, desi
   - Revoke certificates with CRL generation
   - Export certificates to USB
 - **Template System**: Pre-configured templates for common certificate types (CA, server, client, VPN)
-- **USB Support**: Import/export certificates, CSRs, and templates via USB drives
+- **USB Support**:
+  - Import/export certificates, CSRs, and templates via USB drives
+  - Import and export `vars`/`vars.example` configuration files
+  - Safely eject drives before removal (Linux: `eject`; macOS: `diskutil unmount`)
+- **In-Content Info and Confirm Screens**: Status, result, and confirmation prompts are shown inside the content area and navigated with the jog-dial — no popup dialogs
 - **Optimized UI**: Custom widgets designed for small 480x320 display
 
 ## Hardware Requirements
@@ -38,6 +42,16 @@ A Python 3 Tkinter-based GUI for Easy-RSA certificate authority management, desi
 sudo apt-get update
 sudo apt-get install easy-rsa
 ```
+
+### 1a. Install `eject` (recommended, Linux only)
+
+The USB eject feature uses the `eject` command to safely power off the drive before removal. Install it if not already present:
+
+```bash
+sudo apt-get install eject
+```
+
+If `eject` is not installed, the application falls back to `umount` (unmounts the filesystem but does not power off the device).
 
 ### 2. Clone Repository
 
@@ -121,6 +135,26 @@ python3 main.py  # Fullscreen is default
 3. Choose **Export Certificates**
 4. Select certificate to export
 5. Choose full bundle (cert + key + CA) or certificate only
+
+#### 6. Export vars File to USB
+
+1. Navigate to **USB Import/Export** > Select USB drive
+2. Choose **Export vars file**
+3. The application searches for a `vars` file in the PKI directory, then the Easy-RSA directory (falls back to `vars.example`)
+
+#### 7. Import vars File from USB
+
+1. Navigate to **USB Import/Export** > Select USB drive
+2. Choose **Import vars file**
+3. Select the `vars` file from the list (searches for `vars`, `vars.example`, and `*.vars`)
+4. The file is copied to the PKI directory (or Easy-RSA directory if PKI is not yet initialised) with **owner-only read/write permissions (600)**
+
+#### 8. Eject a USB Drive
+
+1. Navigate to **USB Import/Export** > Select USB drive
+2. Choose **Eject Drive**
+3. Confirm the eject operation
+4. Wait for the "Ejected" confirmation before physically removing the drive
 
 ## Directory Structure
 
@@ -231,6 +265,12 @@ set_var EASYRSA_CERT_EXPIRE 825
 - Verify USB is mounted: `mount | grep usb`
 - Check mount points in settings match your system
 - Ensure USB is formatted with a compatible filesystem (ext4, FAT32, NTFS)
+
+### USB Drive Won't Eject
+
+- Close any files that are open on the drive before ejecting
+- Install the `eject` package: `sudo apt-get install eject`
+- If ejecting still fails, you can manually eject with: `eject /path/to/drive`
 
 ### Certificate Creation Fails
 

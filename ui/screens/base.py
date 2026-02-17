@@ -82,28 +82,26 @@ class BaseScreen(ABC):
         self.navigator.confirm()
 
     def show_message(self, title: str, message: str):
-        """Show message dialog.
+        """Show an info screen in the content area. OK goes back.
 
         Args:
-            title: Dialog title
+            title: Screen title
             message: Message text
         """
-        from ui.widgets import MessageBox
-        MessageBox(self.content_frame, title, message, ['OK']).get_result()
+        self.navigator.push_screen(self)
+        self.app.show_screen(InfoScreen(self.app, self.navigator, title, message))
 
-    def show_confirm(self, title: str, message: str) -> bool:
-        """Show confirmation dialog.
+    def show_confirm(self, title: str, message: str, on_yes=None, on_no=None):
+        """Show a confirmation screen with Yes/No menu. Callbacks are invoked after selection.
 
         Args:
-            title: Dialog title
-            message: Message text
-
-        Returns:
-            True if confirmed, False otherwise
+            title: Screen title
+            message: Question/warning text
+            on_yes: Callable invoked when user selects Yes
+            on_no: Callable invoked when user selects No
         """
-        from ui.widgets import MessageBox
-        result = MessageBox(self.content_frame, title, message, ['Yes', 'No']).get_result()
-        return result == 'Yes'
+        self.navigator.push_screen(self)
+        self.app.show_screen(ConfirmScreen(self.app, self.navigator, title, message, on_yes, on_no))
 
     def go_back(self):
         """Navigate back to previous screen."""
@@ -250,3 +248,120 @@ class FormScreen(BaseScreen):
             parent: Parent frame for form fields
         """
         pass
+
+
+class InfoScreen(BaseScreen):
+    """Displays a title and scrollable message. OK goes back."""
+
+    def __init__(self, app, navigator: JogDialNavigator, title: str, message: str):
+        super().__init__(app, navigator)
+        self.title = title
+        self.message = message
+        self._text_widget = None
+
+    def build(self, content_frame: tk.Frame):
+        self.content_frame = content_frame
+
+        if self.title:
+            title_bar = tk.Frame(content_frame, bg='#2c3e50', height=40)
+            title_bar.pack(fill=tk.X)
+            title_bar.pack_propagate(False)
+            tk.Label(
+                title_bar, text=self.title,
+                bg='#2c3e50', fg='white',
+                font=('DejaVu Sans', settings.get('font.size_large', 12), 'bold'),
+                anchor='w', padx=10
+            ).pack(fill=tk.BOTH, expand=True)
+
+        hint_bar = tk.Frame(content_frame, bg='#27ae60', height=28)
+        hint_bar.pack(fill=tk.X, side=tk.BOTTOM)
+        hint_bar.pack_propagate(False)
+        tk.Label(
+            hint_bar, text='OK \u2192 Back',
+            bg='#27ae60', fg='white',
+            font=('DejaVu Sans', settings.get('font.size_small', 8), 'bold'),
+            anchor='center'
+        ).pack(fill=tk.BOTH, expand=True)
+
+        self._text_widget = tk.Text(
+            content_frame,
+            wrap=tk.WORD,
+            bg='white', fg='#2c3e50',
+            font=('DejaVu Sans', settings.get('font.size_normal', 10)),
+            padx=10, pady=8,
+            relief=tk.FLAT, highlightthickness=0
+        )
+        self._text_widget.insert(1.0, self.message)
+        self._text_widget.config(state=tk.DISABLED)
+        self._text_widget.pack(fill=tk.BOTH, expand=True)
+
+    def on_up(self):
+        if self._text_widget:
+            self._text_widget.yview_scroll(-1, 'units')
+
+    def on_down(self):
+        if self._text_widget:
+            self._text_widget.yview_scroll(1, 'units')
+
+    def on_confirm_button(self):
+        self.go_back()
+
+
+class ConfirmScreen(MenuScreen):
+    """Displays a message with Yes/No menu. Callbacks are invoked after selection."""
+
+    def __init__(self, app, navigator: JogDialNavigator, title: str, message: str,
+                 on_yes=None, on_no=None):
+        super().__init__(app, navigator, title=title)
+        self.message = message
+        self.on_yes_callback = on_yes
+        self.on_no_callback = on_no
+
+    def build(self, content_frame: tk.Frame):
+        self.content_frame = content_frame
+
+        if self.title:
+            title_bar = tk.Frame(content_frame, bg='#e67e22', height=40)
+            title_bar.pack(fill=tk.X)
+            title_bar.pack_propagate(False)
+            tk.Label(
+                title_bar, text=self.title,
+                bg='#e67e22', fg='white',
+                font=('DejaVu Sans', settings.get('font.size_large', 12), 'bold'),
+                anchor='w', padx=10
+            ).pack(fill=tk.BOTH, expand=True)
+
+        msg_frame = tk.Frame(content_frame, bg='#fef9e7')
+        msg_frame.pack(fill=tk.BOTH, expand=True)
+        tk.Label(
+            msg_frame, text=self.message,
+            bg='#fef9e7', fg='#2c3e50',
+            font=('DejaVu Sans', settings.get('font.size_normal', 10)),
+            anchor='nw', padx=10, pady=8,
+            justify=tk.LEFT, wraplength=340
+        ).pack(fill=tk.BOTH, expand=True)
+
+        from ui.widgets import MenuList
+        self.menu_list_widget = MenuList(content_frame, visible_items=2)
+        self.menu_list_widget.pack(fill=tk.X)
+
+        self._build_menu_items()
+        menu_labels = [item['label'] for item in self.menu_items]
+        self.menu_list_widget.set_items(menu_labels)
+        self.navigator.set_items(self.menu_items)
+
+    def _build_menu_items(self):
+        self.menu_items = [
+            {'label': 'Yes', 'action': self._on_yes},
+            {'label': 'No',  'action': self._on_no},
+        ]
+
+    def _on_yes(self):
+        self.go_back()
+        if self.on_yes_callback:
+            self.on_yes_callback()
+
+    def _on_no(self):
+        self.go_back()
+        if self.on_no_callback:
+            self.on_no_callback()

@@ -134,26 +134,20 @@ Key File:
 
     def _revoke_cert(self):
         """Revoke certificate."""
-        if not self.show_confirm('Revoke Certificate',
-                                f'Revoke certificate:\n\n{self.certificate.common_name}\n\nThis cannot be undone!'):
-            return
+        self.show_confirm(
+            'Revoke Certificate',
+            f'Revoke certificate:\n\n{self.certificate.common_name}\n\nThis cannot be undone!',
+            on_yes=self._do_revoke_cert
+        )
 
-        # Revoke the certificate
+    def _do_revoke_cert(self):
         result = self.easyrsa.revoke(self.certificate.common_name)
-
         if result.success:
-            # Generate CRL
             crl_result = self.easyrsa.gen_crl()
-
             if crl_result.success:
-                self.show_message('Success',
-                                f'Certificate revoked successfully.\n\nCRL updated.')
+                self.show_message('Success', 'Certificate revoked successfully.\n\nCRL updated.')
             else:
-                self.show_message('Partial Success',
-                                f'Certificate revoked, but CRL generation failed.')
-
-            # Go back to list
-            self.go_back()
+                self.show_message('Partial Success', 'Certificate revoked, but CRL generation failed.')
         else:
             error_msg = result.stderr or result.stdout or 'Unknown error'
             self.show_message('Error', f'Failed to revoke certificate:\n\n{error_msg[:200]}')

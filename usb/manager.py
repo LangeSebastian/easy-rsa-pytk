@@ -219,6 +219,20 @@ class USBFileManager:
         """
         return self.list_files(usb_path, '*.vars')
 
+    def list_vars_files(self, usb_path: str) -> List[str]:
+        """List vars configuration files on USB (vars, vars.example, *.vars).
+
+        Args:
+            usb_path: USB drive path
+
+        Returns:
+            List of file paths
+        """
+        found = set()
+        for pattern in ('vars', 'vars.example', '*.vars'):
+            found.update(self.list_files(usb_path, pattern))
+        return sorted(found)
+
     def get_file_info(self, file_path: str) -> dict:
         """Get file information.
 

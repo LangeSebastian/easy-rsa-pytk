@@ -69,9 +69,11 @@ class CertSignScreen(MenuScreen):
             req_name: Request name
             cert_type: Certificate type ('server' or 'client')
         """
-        if self.show_confirm('Sign Certificate',
-                           f'Sign certificate request:\n\n{req_name}\n\nAs: {cert_type}\n\nContinue?'):
-            self._sign_certificate(req_name, cert_type)
+        self.show_confirm(
+            'Sign Certificate',
+            f'Sign certificate request:\n\n{req_name}\n\nAs: {cert_type}\n\nContinue?',
+            on_yes=lambda: self._sign_certificate(req_name, cert_type)
+        )
 
     def _sign_certificate(self, req_name: str, cert_type: str):
         """Sign the certificate.
@@ -82,25 +84,15 @@ class CertSignScreen(MenuScreen):
         """
         self._show_progress(f'Signing certificate:\n{req_name}')
 
-        # Sign the request
         result = self.easyrsa.sign_req(cert_type, req_name)
 
         if result.success:
             cert_path = self.pki_manager.get_certificate_path(req_name)
-
             msg = f'Certificate signed successfully!\n\n'
             msg += f'Name: {req_name}\n'
             msg += f'Type: {cert_type}\n\n'
             msg += f'Certificate: {cert_path if cert_path else "Unknown"}'
-
             self.show_message('Success', msg)
-
-            # Refresh menu
-            self._build_menu_items()
-            if self.menu_list_widget:
-                menu_labels = [item['label'] for item in self.menu_items]
-                self.menu_list_widget.set_items(menu_labels)
-                self.navigator.set_items(self.menu_items)
         else:
             error_msg = result.stderr or result.stdout or 'Unknown error'
             self.show_message('Error', f'Failed to sign certificate:\n\n{error_msg[:200]}')

@@ -81,21 +81,23 @@ class CertExportScreen(MenuScreen):
             self.show_message('Error', 'Certificate file not found')
             return
 
-        # Ask if user wants bundle or just certificate
-        if self.show_confirm('Export Options',
-                           f'Export {cert.common_name}\n\nExport full bundle (cert + key + CA)?'):
-            # Export bundle
-            if self.usb_manager.export_certificate_bundle(
-                cert_path, key_path, ca_path,
-                self.usb_path, cert.common_name
-            ):
-                self.show_message('Success',
-                                f'Certificate bundle exported:\n\n{cert.common_name}/')
-            else:
-                self.show_message('Error', 'Failed to export certificate bundle')
+        self.show_confirm(
+            'Export Options',
+            f'Export {cert.common_name}\n\nExport full bundle (cert + key + CA)?',
+            on_yes=lambda: self._do_export_bundle(cert, cert_path, key_path, ca_path),
+            on_no=lambda: self._do_export_cert_only(cert, cert_path)
+        )
+
+    def _do_export_bundle(self, cert, cert_path, key_path, ca_path):
+        if self.usb_manager.export_certificate_bundle(
+            cert_path, key_path, ca_path, self.usb_path, cert.common_name
+        ):
+            self.show_message('Success', f'Certificate bundle exported:\n\n{cert.common_name}/')
         else:
-            # Export just certificate
-            if self.usb_manager.export_certificate(cert_path, self.usb_path):
-                self.show_message('Success', f'Certificate exported:\n\n{cert.common_name}.crt')
-            else:
-                self.show_message('Error', 'Failed to export certificate')
+            self.show_message('Error', 'Failed to export certificate bundle')
+
+    def _do_export_cert_only(self, cert, cert_path):
+        if self.usb_manager.export_certificate(cert_path, self.usb_path):
+            self.show_message('Success', f'Certificate exported:\n\n{cert.common_name}.crt')
+        else:
+            self.show_message('Error', 'Failed to export certificate')

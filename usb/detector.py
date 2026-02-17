@@ -174,6 +174,51 @@ class USBDetector:
 
         return info
 
+    def unmount_drive(self, drive_path: str) -> bool:
+        """Eject/unmount a USB drive safely.
+
+        On Linux tries ``eject`` first (unmounts + powers off the device),
+        then falls back to plain ``umount``.
+        On macOS uses ``diskutil unmount``.
+
+        Args:
+            drive_path: Mount path of the drive to eject
+
+        Returns:
+            True if ejected/unmounted successfully
+        """
+        import subprocess
+
+        try:
+            if self.system == 'Linux':
+                # eject unmounts and powers off the device (safe-remove)
+                result = subprocess.run(
+                    ['eject', drive_path],
+                    capture_output=True, text=True, timeout=10
+                )
+                if result.returncode == 0:
+                    return True
+                # fall back to plain umount if eject is not installed
+                result = subprocess.run(
+                    ['umount', drive_path],
+                    capture_output=True, text=True, timeout=10
+                )
+                return result.returncode == 0
+
+            elif self.system == 'Darwin':
+                result = subprocess.run(
+                    ['diskutil', 'unmount', drive_path],
+                    capture_output=True, text=True, timeout=10
+                )
+                return result.returncode == 0
+
+            else:
+                # Windows: no programmatic eject implemented
+                return True
+
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            return False
+
     def wait_for_usb(self, timeout: int = 30) -> Optional[str]:
         """Wait for a USB drive to be inserted.
 

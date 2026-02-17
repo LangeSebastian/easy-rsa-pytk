@@ -88,44 +88,42 @@ Certificates:
 
     def _init_pki(self):
         """Initialize PKI directory."""
-        if not self.show_confirm('Initialize PKI',
-                                'This will create a new PKI directory structure.\n\nContinue?'):
-            return
+        self.show_confirm(
+            'Initialize PKI',
+            'This will create a new PKI directory structure.\n\nContinue?',
+            on_yes=self._do_init_pki
+        )
 
-        # Show progress
+    def _do_init_pki(self):
         self._show_progress('Initializing PKI...')
-
-        # Initialize PKI
         result = self.easyrsa.init_pki()
-
         if result.success:
             self.show_message('Success', 'PKI initialized successfully!\n\nYou can now build the CA.')
         else:
             self.show_message('Error', f'Failed to initialize PKI:\n\n{result.stderr}')
-        self.app.show_screen(self)
 
     def _reinit_pki(self):
         """Reinitialize PKI (destroys existing)."""
-        if not self.show_confirm('Reinitialize PKI',
-                                'WARNING: This will DELETE all existing certificates and keys!\n\nAre you sure?'):
-            return
+        self.show_confirm(
+            'Reinitialize PKI',
+            'WARNING: This will DELETE all existing certificates and keys!\n\nAre you sure?',
+            on_yes=self._confirm_reinit_step2
+        )
 
-        # Double confirmation
-        if not self.show_confirm('Confirm Deletion',
-                                'This action cannot be undone.\n\nReally delete everything?'):
-            return
+    def _confirm_reinit_step2(self):
+        self.show_confirm(
+            'Confirm Deletion',
+            'This action cannot be undone.\n\nReally delete everything?',
+            on_yes=self._do_reinit_pki
+        )
 
-        # Show progress
+    def _do_reinit_pki(self):
         self._show_progress('Reinitializing PKI...')
-
-        # Force reinitialize
         result = self.easyrsa.init_pki(force=True)
-
         if result.success:
             self.show_message('Success', 'PKI reinitialized.\n\nYou can now build a new CA.')
         else:
             self.show_message('Error', f'Failed to reinitialize PKI:\n\n{result.stderr}')
-        self.app.show_screen(self)
 
     def _build_ca_wizard(self):
         """Start CA build wizard."""
@@ -152,10 +150,11 @@ Certificates:
         template_vars = self.template_manager.load_template(template_name)
         ca_cn = template_vars.get('EASYRSA_REQ_CN', 'Easy-RSA CA')
 
-        # Confirm and build
-        if self.show_confirm('Build CA',
-                           f'Build CA with:\n\nTemplate: {template_name}\nCN: {ca_cn}\n\nContinue?'):
-            self._build_ca(template_name, ca_cn)
+        self.show_confirm(
+            'Build CA',
+            f'Build CA with:\n\nTemplate: {template_name}\nCN: {ca_cn}\n\nContinue?',
+            on_yes=lambda: self._build_ca(template_name, ca_cn)
+        )
 
     def _build_ca(self, template_name: str, ca_cn: str):
         """Build the CA.
@@ -175,7 +174,6 @@ Certificates:
         else:
             error_msg = result.stderr or result.stdout or 'Unknown error'
             self.show_message('Error', f'Failed to build CA:\n\n{error_msg[:200]}')
-        self.app.show_screen(self)
 
     def _show_progress(self, message: str):
         """Show progress indicator.

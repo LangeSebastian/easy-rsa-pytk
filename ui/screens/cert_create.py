@@ -104,10 +104,11 @@ class CertCreateScreen(MenuScreen):
             self.show_message('Error', f'Certificate "{cert_name}" already exists')
             return
 
-        # Confirm and create
-        if self.show_confirm('Create Certificate',
-                           f'Create {self.current_cert_type} certificate:\n\n{cert_name}\n\nContinue?'):
-            self._build_certificate(self.current_cert_type, cert_name, self.current_template)
+        self.show_confirm(
+            'Create Certificate',
+            f'Create {self.current_cert_type} certificate:\n\n{cert_name}\n\nContinue?',
+            on_yes=lambda: self._build_certificate(self.current_cert_type, cert_name, self.current_template)
+        )
 
     def _build_certificate(self, cert_type: str, cert_name: str, template_name: str):
         """Build the certificate.
