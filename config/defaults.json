@@ -1,0 +1,28 @@
+{
+  "pki_dir": "/home/pi/easy-rsa-pki",
+  "easyrsa_bin": "/usr/share/easy-rsa/easyrsa",
+  "usb_mount_points": [
+    "/media/pi",
+    "/mnt/usb"
+  ],
+  "template_dir": "templates/vars",
+  "log_level": "INFO",
+  "log_file": "/var/log/easy-rsa-pytk.log",
+  "window": {
+    "width": 480,
+    "height": 320,
+    "fullscreen": true
+  },
+  "layout": {
+    "content_width": 360,
+    "button_width": 120,
+    "button_height": 40,
+    "button_spacing": 10
+  },
+  "font": {
+    "family": "DejaVu Sans",
+    "size_normal": 10,
+    "size_large": 12,
+    "size_small": 8
+  }
+}

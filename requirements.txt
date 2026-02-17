@@ -1,0 +1,5 @@
+# Easy-RSA PyTk Requirements
+# Tkinter is included with Python on Raspberry Pi OS
+
+# USB device detection (Linux only)
+pyudev==0.24.1
