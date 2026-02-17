@@ -100,14 +100,9 @@ Certificates:
 
         if result.success:
             self.show_message('Success', 'PKI initialized successfully!\n\nYou can now build the CA.')
-            # Refresh menu
-            self._build_menu_items()
-            if self.menu_list_widget:
-                menu_labels = [item['label'] for item in self.menu_items]
-                self.menu_list_widget.set_items(menu_labels)
-                self.navigator.set_items(self.menu_items)
         else:
             self.show_message('Error', f'Failed to initialize PKI:\n\n{result.stderr}')
+        self.app.show_screen(self)
 
     def _reinit_pki(self):
         """Reinitialize PKI (destroys existing)."""
@@ -128,14 +123,9 @@ Certificates:
 
         if result.success:
             self.show_message('Success', 'PKI reinitialized.\n\nYou can now build a new CA.')
-            # Refresh menu
-            self._build_menu_items()
-            if self.menu_list_widget:
-                menu_labels = [item['label'] for item in self.menu_items]
-                self.menu_list_widget.set_items(menu_labels)
-                self.navigator.set_items(self.menu_items)
         else:
             self.show_message('Error', f'Failed to reinitialize PKI:\n\n{result.stderr}')
+        self.app.show_screen(self)
 
     def _build_ca_wizard(self):
         """Start CA build wizard."""
@@ -182,15 +172,10 @@ Certificates:
         if result.success:
             self.show_message('Success',
                             f'CA created successfully!\n\nCommon Name: {ca_cn}\n\nYou can now create certificates.')
-            # Refresh menu
-            self._build_menu_items()
-            if self.menu_list_widget:
-                menu_labels = [item['label'] for item in self.menu_items]
-                self.menu_list_widget.set_items(menu_labels)
-                self.navigator.set_items(self.menu_items)
         else:
             error_msg = result.stderr or result.stdout or 'Unknown error'
             self.show_message('Error', f'Failed to build CA:\n\n{error_msg[:200]}')
+        self.app.show_screen(self)
 
     def _show_progress(self, message: str):
         """Show progress indicator.
