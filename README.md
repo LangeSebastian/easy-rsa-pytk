@@ -96,6 +96,26 @@ python3 main.py  # Fullscreen is default
 
 ### Typical Workflow
 
+#### 0. Customise Templates and vars File (recommended)
+
+Templates control the certificate parameters (country, organisation, key size, expiry, etc.). Since the Raspberry Pi has no keyboard, edit them on another computer and transfer via USB:
+
+1. Insert USB drive into the Pi
+2. Navigate to **USB Import/Export** > Select USB drive > **Export Templates**
+3. Select the template(s) you want to customise (e.g., `ca`, `server`)
+4. **Eject Drive**, move USB to your computer
+5. Edit the exported `.vars` files in a text editor
+6. Move USB back to the Pi
+7. **USB Import/Export** > Select USB drive > **Import Templates** — select the edited file
+
+You can also prepare a `vars` file (global Easy-RSA defaults) the same way:
+
+1. Export the current vars file: **Export vars file**
+2. Edit it on your computer
+3. Re-import: **Import vars file** — the file is stored in the PKI directory with owner-only permissions (600)
+
+Do this before initialising the PKI so the CA is built with your desired parameters.
+
 #### 1. Initialize PKI and Create CA
 
 1. Navigate to **Settings** > **CA Management**
@@ -136,20 +156,27 @@ python3 main.py  # Fullscreen is default
 4. Select certificate to export
 5. Choose full bundle (cert + key + CA) or certificate only
 
-#### 6. Export vars File to USB
+#### 6. Export Templates to USB
+
+1. Navigate to **USB Import/Export** > Select USB drive
+2. Choose **Export Templates**
+3. Select the template to export
+4. The `.vars` file is copied to the USB drive
+
+#### 7. Export vars File to USB
 
 1. Navigate to **USB Import/Export** > Select USB drive
 2. Choose **Export vars file**
 3. The application searches for a `vars` file in the PKI directory, then the Easy-RSA directory (falls back to `vars.example`)
 
-#### 7. Import vars File from USB
+#### 8. Import vars File from USB
 
 1. Navigate to **USB Import/Export** > Select USB drive
 2. Choose **Import vars file**
 3. Select the `vars` file from the list (searches for `vars`, `vars.example`, and `*.vars`)
 4. The file is copied to the PKI directory (or Easy-RSA directory if PKI is not yet initialised) with **owner-only read/write permissions (600)**
 
-#### 8. Eject a USB Drive
+#### 9. Eject a USB Drive
 
 1. Navigate to **USB Import/Export** > Select USB drive
 2. Choose **Eject Drive**
@@ -236,10 +263,17 @@ The application includes pre-configured templates:
 - **vpn-server.vars**: OpenVPN server certificate
 - **vpn-client.vars**: OpenVPN client certificate
 
-### Creating Custom Templates
+### Customising Templates via USB
 
-1. Create a `.vars` file in `templates/vars/`
-2. Use `set_var` format:
+The easiest way to edit templates on a headless Pi is via USB:
+
+1. Export an existing template: **USB Import/Export** > Select drive > **Export Templates** > select template
+2. Edit the `.vars` file on another computer
+3. Re-import: **USB Import/Export** > Select drive > **Import Templates** > select the edited file
+
+### Template File Format
+
+Templates use the `set_var` format:
 
 ```bash
 set_var EASYRSA_REQ_COUNTRY "US"
@@ -251,6 +285,8 @@ set_var EASYRSA_REQ_OU "IT Department"
 set_var EASYRSA_KEY_SIZE 2048
 set_var EASYRSA_CERT_EXPIRE 825
 ```
+
+You can also create a new `.vars` file on your computer and import it — it will be saved to `templates/vars/`.
 
 ## Troubleshooting
 

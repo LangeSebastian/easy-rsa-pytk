@@ -120,6 +120,10 @@ class USBDriveMenuScreen(MenuScreen):
                 'action': self._export_certs
             },
             {
+                'label': 'Export Templates',
+                'action': self._export_templates
+            },
+            {
                 'label': 'Export vars file',
                 'action': self._export_vars
             },
@@ -221,6 +225,47 @@ class USBDriveMenuScreen(MenuScreen):
             usb_path=self.drive_path
         )
         self.app.show_screen(export_screen)
+
+    def _export_templates(self):
+        """Export templates to USB."""
+        templates = self.template_manager.list_templates()
+
+        if not templates:
+            self.show_message('No Templates', 'No templates available to export')
+            return
+
+        # Build list of template file paths for the FileSelectScreen
+        template_files = []
+        for name in templates:
+            path = os.path.join(self.template_manager.template_dir, f'{name}.vars')
+            if os.path.exists(path):
+                template_files.append(path)
+
+        if not template_files:
+            self.show_message('No Templates', 'No template files found on disk')
+            return
+
+        self.navigator.push_screen(self)
+        select_screen = FileSelectScreen(
+            self.app,
+            self.navigator,
+            title='Select Template to Export',
+            files=template_files,
+            on_select=self._on_export_template_selected
+        )
+        self.app.show_screen(select_screen)
+
+    def _on_export_template_selected(self, template_file: str):
+        """Handle template selection for export.
+
+        Args:
+            template_file: Path to selected template file
+        """
+        if self.usb_manager.export_file(template_file, self.drive_path):
+            self.show_message('Success',
+                              f'Exported to USB:\n\n{os.path.basename(template_file)}')
+        else:
+            self.show_message('Error', 'Failed to export template')
 
     def _eject_drive(self):
         """Confirm and eject the USB drive."""
