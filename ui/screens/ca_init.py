@@ -119,7 +119,7 @@ Certificates:
 
     def _do_reinit_pki(self):
         self._show_progress('Reinitializing PKI...')
-        result = self.easyrsa.init_pki(force=True)
+        result = self.easyrsa.init_pki()
         if result.success:
             self.show_message('Success', 'PKI reinitialized.\n\nYou can now build a new CA.')
         else:
@@ -129,7 +129,6 @@ Certificates:
         """Start CA build wizard."""
         # Show template selection screen
         self.navigator.push_screen(self)
-        from ui.screens.template_select import TemplateSelectScreen
         template_screen = TemplateSelectScreen(
             self.app,
             self.navigator,

@@ -82,7 +82,11 @@ class PKIInfo:
             True if PKI directory structure exists
         """
         import os
-        return os.path.exists(self.pki_dir) and os.path.exists(self.index_file)
+        # init-pki creates pki_dir with private/ and reqs/ subdirectories
+        # index.txt is only created later by build-ca
+        return (os.path.exists(self.pki_dir) and
+                os.path.exists(self.private_dir) and
+                os.path.exists(self.reqs_dir))
 
     def has_ca(self) -> bool:
         """Check if CA certificate exists.

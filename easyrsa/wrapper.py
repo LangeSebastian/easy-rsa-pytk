@@ -20,6 +20,9 @@ class EasyRSAWrapper:
         """
         self.easyrsa_bin = easyrsa_bin or settings.easyrsa_bin
         self.pki_dir = pki_dir or settings.pki_dir
+        # Set EASYRSA_PKI and EASYRSA_BATCH in process environment so they're available globally
+        os.environ['EASYRSA_PKI'] = self.pki_dir
+        os.environ['EASYRSA_BATCH'] = '1'
 
     def _run_command(self, args: list, env_vars: Optional[dict] = None) -> CommandResult:
         """Run easy-rsa command.
@@ -83,22 +86,14 @@ class EasyRSAWrapper:
                 message=f'Error running command: {e}'
             )
 
-    def init_pki(self, force: bool = False) -> CommandResult:
+    def init_pki(self) -> CommandResult:
         """Initialize PKI directory structure.
-
-        Args:
-            force: Force re-initialization (destroys existing PKI)
 
         Returns:
             CommandResult
         """
         args = ['init-pki']
-        env_vars = {}
-
-        if force:
-            env_vars['EASYRSA_BATCH'] = '1'
-
-        return self._run_command(args, env_vars)
+        return self._run_command(args)
 
     def build_ca(self, common_name: Optional[str] = None, nopass: bool = True) -> CommandResult:
         """Build Certificate Authority.
@@ -112,17 +107,14 @@ class EasyRSAWrapper:
         """
         args = ['build-ca']
 
-        env_vars = {
-            'EASYRSA_BATCH': '1'
-        }
-
         if nopass:
             args.append('nopass')
 
+        env_vars = {}
         if common_name:
             env_vars['EASYRSA_REQ_CN'] = common_name
 
-        return self._run_command(args, env_vars)
+        return self._run_command(args, env_vars if env_vars else None)
 
     def build_server_full(self, name: str, nopass: bool = True) -> CommandResult:
         """Build server certificate with key.
@@ -139,11 +131,7 @@ class EasyRSAWrapper:
         if nopass:
             args.append('nopass')
 
-        env_vars = {
-            'EASYRSA_BATCH': '1'
-        }
-
-        return self._run_command(args, env_vars)
+        return self._run_command(args)
 
     def build_client_full(self, name: str, nopass: bool = True) -> CommandResult:
         """Build client certificate with key.
@@ -160,11 +148,7 @@ class EasyRSAWrapper:
         if nopass:
             args.append('nopass')
 
-        env_vars = {
-            'EASYRSA_BATCH': '1'
-        }
-
-        return self._run_command(args, env_vars)
+        return self._run_command(args)
 
     def gen_req(self, name: str, nopass: bool = True) -> CommandResult:
         """Generate certificate request (without signing).
@@ -181,11 +165,7 @@ class EasyRSAWrapper:
         if nopass:
             args.append('nopass')
 
-        env_vars = {
-            'EASYRSA_BATCH': '1'
-        }
-
-        return self._run_command(args, env_vars)
+        return self._run_command(args)
 
     def import_req(self, req_file: str, short_name: str) -> CommandResult:
         """Import certificate request.
@@ -211,12 +191,7 @@ class EasyRSAWrapper:
             CommandResult
         """
         args = ['sign-req', cert_type, name]
-
-        env_vars = {
-            'EASYRSA_BATCH': '1'
-        }
-
-        return self._run_command(args, env_vars)
+        return self._run_command(args)
 
     def revoke(self, name: str, reason: str = 'unspecified') -> CommandResult:
         """Revoke certificate.
@@ -229,12 +204,7 @@ class EasyRSAWrapper:
             CommandResult
         """
         args = ['revoke', name]
-
-        env_vars = {
-            'EASYRSA_BATCH': '1'
-        }
-
-        return self._run_command(args, env_vars)
+        return self._run_command(args)
 
     def gen_crl(self) -> CommandResult:
         """Generate Certificate Revocation List.
